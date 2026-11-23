@@ -12,7 +12,8 @@
 | M4 扣杂竞价 | 查看并执行扣杂竞价 | `POST /api/auction` | `app/modules/auction/rules.py` | `tests/test_auction.py` |
 | M5 更正裁决 | 查看并执行更正裁决 | `POST /api/correction` | `app/modules/correction/rules.py` | `tests/test_correction.py` |
 | M6 应付对账 | 查看并执行应付对账 | `POST /api/reconcile` | `app/modules/reconcile/rules.py` | `tests/test_reconcile.py` |
-| M7 结算归档 | 查看并执行结算归档 | `POST /api/archive` | `app/modules/archive/rules.py` | `tests/test_archive.py` |
+| M7 月度代扣税 | 查看并申报船户月度代扣 | `POST /api/tax`、`POST /api/tax/declare` | `app/tax.py`、`app/tax_ledger.py`、`app/modules/tax/rules.py` | `tests/test_tax.py` |
+| M8 结算归档 | 查看并执行结算归档 | `POST /api/archive` | `app/modules/archive/rules.py` | `tests/test_archive.py` |
 
 ## 陷阱登记
 
@@ -30,10 +31,18 @@
 | TRAP-06 | 全角千分位 | 静默错算或丢失证据 | 显式归一与原因裁决 | `app/modules/conversion/rules.py` | `tests/test_conversion.py::test_fullwidth_thousands` |
 | TRAP-10 | 金额半分舍入 | 静默错算或丢失证据 | 显式归一与原因裁决 | `app/modules/auction/rules.py` | `tests/test_auction.py::test_half_cent_rounding` |
 | TRAP-26 | 陈旧更正分支 | 静默错算或丢失证据 | 显式归一与原因裁决 | `app/modules/correction/rules.py` | `tests/test_correction.py::test_stale_branch` |
+| TRAP-27 | 月末更正跨税档 | 整月重算改写已申报税单，或只改本票致后续少扣 | 结算序增量登记，已申报锚点不改写 | `app/tax.py`、`app/tax_ledger.py` | `tests/test_tax.py::test_month_end_correction_keeps_declared_and_charges_margin` |
+| TRAP-28 | 同一更正重复申报 | 重复扣税或退款 | `entry_id` 幂等账本，重跑只命中复用 | `app/tax_ledger.py` | `tests/test_tax.py::test_rerun_does_not_double_charge` |
+| TRAP-29 | 缺纳税人身份/断链/账本不符 | 静默出账 | 户级暂缓并留 blocked 证据 | `app/tax.py`、`app/tax_ledger.py` | `tests/test_tax.py::test_declare_refused_when_owner_held` |
+| TRAP-30 | 申报中途失败 | 丢失原税单或部分落账 | 整批事务回滚，失败另记日志 | `app/tax_ledger.py` | `tests/test_tax.py::test_declare_failure_keeps_existing_tax` |
 
 ## 对账规则
 
 输入=采纳原始行+隔离行+空行+同值重复行+重复表头。计价版本总额与生效票总额分别展示，避免把更正前后重复求和。最终应付=已付+待付，负待付为退款。
+
+## 月度代扣税规则
+
+户级累计计税依据=生效票成交额之和，与应付对账同源。每笔登记取 `T(登记后) − T(登记前)`，已申报锚点不改写，逐笔增量之和等于 `T(月末累计)`。页面同时展示采用的结算版本、登记前后累计计税依据、本票已申报税额、本次应扣或应退、账本状态和重跑命中。任一船户缺纳税人身份、更正链未闭合、户级与票级或账本不符时整户暂缓且整批拒绝申报；申报账本 `entry_id` 幂等，失败整批回滚并保留原税单。
 
 ## 已知不覆盖
 

@@ -5,6 +5,7 @@ document.querySelector('#run').addEventListener('click',async(event)=>{event.tar
 document.querySelector('#pause').addEventListener('click',event=>{state.paused=!state.paused;event.target.textContent=state.paused?'继续日志':'暂停日志';document.querySelector('#log-state').textContent=state.paused?'已暂停':'滚动中';});
 document.querySelector('#filter').addEventListener('input',event=>{const text=event.target.value.trim();document.querySelectorAll('.primary-panel tbody tr').forEach(row=>row.hidden=!row.textContent.includes(text));});
 const review=document.querySelector('#review');if(review)review.addEventListener('click',async()=>{try{const run=await fetch('/api/runs/'+review.dataset.id).then(r=>r.json());const result=await request('/api/runs/'+review.dataset.id+'/review',{revision:run.revision});feedback.textContent=result.status;}catch(error){feedback.textContent=error.message;}});
+const declare=document.querySelector('#declare');if(declare)declare.addEventListener('click',async(event)=>{event.target.disabled=true;feedback.textContent='申报中…';try{const data=await request('/api/tax/declare',{run_id:declare.dataset.id});feedback.textContent=`申报成功 · 新增 ${data.applied} 笔 · 重跑命中 ${data.replayed} 笔 · 跳过 ${data.skipped} 笔`;}catch(error){feedback.textContent=error.message;}finally{event.target.disabled=false;}});
 const selected=new URL(location.href).searchParams.get('dataset');if(selected)document.querySelector('#dataset').value=selected;
 
 const filePicker=document.querySelector('#csv-file');

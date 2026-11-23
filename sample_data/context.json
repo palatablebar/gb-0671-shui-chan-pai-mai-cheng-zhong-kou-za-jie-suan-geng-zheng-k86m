@@ -6,9 +6,30 @@
     "auction",
     "correction",
     "reconcile",
+    "tax",
     "archive"
   ],
   "market": "东港水产",
   "currency": "CNY",
-  "weight_unit": "kg"
+  "weight_unit": "kg",
+  "tax": {
+    "month": "2026-11",
+    "rule_version": "tax-2026.11-v1",
+    "exemption": "3000",
+    "brackets": [
+      {"upto": "6000", "rate": "0.005"},
+      {"upto": "12000", "rate": "0.01"},
+      {"upto": "", "rate": "0.02"}
+    ]
+  },
+  "taxpayers": {
+    "SH01": {"tax_id": "91310000SH01A1B2C", "status": "有效", "legal_name": "东港一号渔船"},
+    "SH02": {"tax_id": "91310000SH02D3E4F", "status": "有效", "legal_name": "东港二号渔船"}
+  },
+  "ticket_owners": {
+    "00001": "SH01", "00002": "SH01", "00003": "SH01", "00004": "SH01", "00005": "SH01",
+    "00006": "SH01", "00007": "SH01", "00008": "SH01", "00009": "SH01", "00010": "SH01",
+    "00011": "SH02", "00012": "SH02", "00013": "SH02", "00014": "SH02", "00015": "SH02",
+    "00016": "SH02", "00017": "SH02", "00018": "SH02", "00019": "SH02", "00020": "SH02"
+  }
 }

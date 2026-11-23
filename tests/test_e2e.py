@@ -53,3 +53,37 @@ def test_custom_csv_snapshot_and_navigation(tmp_path,monkeypatch):
     assert repeated.status_code==200
     assert repeated.json()['manifest']['run_id']==rid
     assert repeated.json()['manifest']['sha256']==result['manifest']['sha256']
+
+def test_tax_declare_is_idempotent_over_http(tmp_path,monkeypatch):
+    c=client(tmp_path,monkeypatch)
+    rid=c.post('/api/runs',json={}).json()['manifest']['run_id']
+    first=c.post('/api/tax/declare',json={'run_id':rid})
+    assert first.status_code==200
+    assert first.json()['applied']==21
+    again=c.post('/api/tax/declare',json={'run_id':rid})
+    assert again.status_code==200
+    assert again.json()['applied']==0
+    assert again.json()['replayed']==21
+    assert len(c.get('/api/tax/ledger').json())==21
+    assert c.get('/api/tax/declarations').json()
+
+def test_tax_declare_requires_valid_run(tmp_path,monkeypatch):
+    c=client(tmp_path,monkeypatch)
+    assert c.post('/api/tax/declare',json={}).status_code==422
+    assert c.post('/api/tax/declare',json={'run_id':'missing'}).status_code==404
+
+def test_tax_declare_refused_when_held(tmp_path,monkeypatch):
+    c=client(tmp_path,monkeypatch)
+    taxpayers={"SH01":{"tax_id":"91310000SH01A1B2C","status":"有效"}}  # 缺 SH02
+    rid=c.post('/api/runs',json={'overrides':{'taxpayers':taxpayers}}).json()['manifest']['run_id']
+    response=c.post('/api/tax/declare',json={'run_id':rid})
+    assert response.status_code==422
+    assert response.json()['code']=='TAX_HELD'
+    assert c.get('/api/tax/ledger').json()==[]
+
+def test_tax_page_shows_checkpoints(tmp_path,monkeypatch):
+    c=client(tmp_path,monkeypatch)
+    rid=c.post('/api/runs',json={}).json()['manifest']['run_id']
+    html=c.get('/tax?run_id='+rid).text
+    for needle in ('船户月度代扣账','累计计税依据','本次应扣/应退','可支付净额','申报本期税额'):
+        assert needle in html
